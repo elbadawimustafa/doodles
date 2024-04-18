@@ -14,7 +14,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const filePath = "./big_buck_bunny_1080p_h264.mov"
+const filePath = "./oceans_hevc.m4f"
 
 func underTest() {
 	r := mux.NewRouter()
