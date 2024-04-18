@@ -74,12 +74,14 @@ func pipeTestFile(w http.ResponseWriter, r *http.Request) {
 		}
 	}(f, pw, wg)
 
-	go func(w http.ResponseWriter, pr *io.PipeReader, wg *sync.WaitGroup) {
+	go func(w http.ResponseWriter, pr *io.PipeReader, wg *sync.WaitGroup, status int) {
 		defer wg.Done()
 		if _, err := io.Copy(w, pr); err != nil {
 			fmt.Fprintf(w, "\nerror reading file: %s", err.Error())
+			status = http.StatusInternalServerError
 		}
-	}(w, pr, wg)
+		w.WriteHeader(status)
+	}(w, pr, wg, status)
 
 	wg.Wait()
 
