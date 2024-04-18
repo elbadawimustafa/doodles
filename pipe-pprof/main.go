@@ -39,6 +39,8 @@ func pipeTestFile(w http.ResponseWriter, r *http.Request) {
 	var status = http.StatusOK
 
 	pr, pw := io.Pipe()
+	defer pr.Close()
+	defer pw.Close()
 
 	// we need to wait for everything to be done
 	wg := &sync.WaitGroup{}
@@ -62,11 +64,11 @@ func pipeTestFile(w http.ResponseWriter, r *http.Request) {
 		for {
 			n, err := f.Read(buf)
 			if err == io.EOF {
-				break
+				pw.Close()
 			}
 			if err != nil {
 				pw.CloseWithError(errors.New(fmt.Sprintf("error reading file, err: %s", err.Error())))
-				continue
+				break
 			}
 			if n > 0 {
 				pw.Write(buf[:n])
