@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -60,19 +58,9 @@ func pipeTestFile(w http.ResponseWriter, r *http.Request) {
 	// feed the pipe
 	go func(f *os.File, pw *io.PipeWriter, wg *sync.WaitGroup) {
 		defer wg.Done()
-		buf := make([]byte, 1024)
-		for {
-			n, err := f.Read(buf)
-			if err == io.EOF {
-				pw.Close()
-			}
-			if err != nil {
-				pw.CloseWithError(errors.New(fmt.Sprintf("error reading file, err: %s", err.Error())))
-				break
-			}
-			if n > 0 {
-				pw.Write(buf[:n])
-			}
+		defer pw.Close()
+		if _, err := io.Copy(pw, f); err != nil {
+			pw.CloseWithError(fmt.Errorf("error reading file: %s", err.Error()))
 		}
 	}(f, pw, wg)
 
@@ -91,19 +79,20 @@ func pipeTestFile(w http.ResponseWriter, r *http.Request) {
 
 func loadTestFile(w http.ResponseWriter, r *http.Request) {
 	var (
-		out    []byte
 		status int
 	)
 
-	f, err := os.ReadFile(filePath)
+	f, err := os.Open(filePath)
+	defer f.Close()
 	if err == nil {
 		status = http.StatusOK
-		out = f
 	} else {
-		out = []byte(fmt.Sprintf("error loading file, err: %s", err.Error()))
+		fmt.Fprintf(w, "error reading file: %s", err.Error())
 		status = http.StatusInternalServerError
+		w.WriteHeader(status)
+		return
 	}
 
-	_, _ = io.Copy(w, bytes.NewReader(out))
+	_, _ = io.Copy(w, f)
 	w.WriteHeader(status)
 }
