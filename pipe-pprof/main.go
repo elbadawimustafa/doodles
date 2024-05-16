@@ -8,17 +8,15 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"sync"
-
-	"github.com/gorilla/mux"
 )
 
 const filePath = "./oceans_hevc.m4f"
 
 func underTest() {
-	r := mux.NewRouter()
-
-	r.HandleFunc("/pipe", pipeTestFile).Methods(http.MethodGet)
-	r.HandleFunc("/load", loadTestFile).Methods(http.MethodGet)
+	r := http.NewServeMux()
+	patternGET := func(route string) string { return fmt.Sprintf("%s %s",http.MethodGet, route) } 
+	r.HandleFunc(patternGET("/pipe"), pipeTestFile)
+	r.HandleFunc(patternGET("/load"), loadTestFile)
 
 	log.Println(http.ListenAndServe(":8000", r))
 
